@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS vehiculos (
   modelo VARCHAR(80) NOT NULL,
   patente VARCHAR(20) NOT NULL UNIQUE,
   anio SMALLINT UNSIGNED NOT NULL,
-  capacidad_carga DECIMAL(10, 2) NOT NULL,
+  capacidad_carga DECIMAL(10,2) NOT NULL,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -41,12 +41,11 @@ CREATE TABLE IF NOT EXISTS viajes (
   fecha_llegada DATETIME NULL,
   origen VARCHAR(150) NOT NULL,
   destino VARCHAR(150) NOT NULL,
-  kilometros DECIMAL(10, 2) NOT NULL,
+  kilometros DECIMAL(10,2) NOT NULL,
   observaciones TEXT NULL,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-  CONSTRAINT fk_viajes_vehiculos
+  CONSTRAINT fk_viajes_vehiculo
     FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id),
-  CONSTRAINT fk_viajes_conductores
+  CONSTRAINT fk_viajes_conductor
     FOREIGN KEY (conductor_id) REFERENCES conductores(id)
 );

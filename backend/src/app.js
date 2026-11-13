@@ -2,7 +2,9 @@ import express from "express";
 import cors from "cors";
 import passport from "./config/passport.js";
 import authRoutes from "./routes/authRoutes.js";
-import { requiereAutenticacion } from "./middlewares/auth.js";
+import vehiculosRoutes from "./routes/vehiculosRoutes.js";
+import conductoresRoutes from "./routes/conductoresRoutes.js";
+import viajesRoutes from "./routes/viajesRoutes.js";
 
 const app = express();
 
@@ -15,9 +17,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-
-app.get("/api/auth/perfil", requiereAutenticacion, (req, res) => {
-  res.json({ usuario: req.user });
-});
+app.use("/api/vehiculos", vehiculosRoutes);
+app.use("/api/conductores", conductoresRoutes);
+app.use("/api/viajes", viajesRoutes);
 
 export default app;
