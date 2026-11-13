@@ -1,4 +1,4 @@
-# Gestión de Transporte
+# Gestión de Transporte. 
 
 Aplicación web para administrar una flota de transporte. Permite gestionar vehículos, conductores y viajes, consultar historiales y calcular kilómetros recorridos. Incluye registro e inicio de sesión de usuarios.
 
