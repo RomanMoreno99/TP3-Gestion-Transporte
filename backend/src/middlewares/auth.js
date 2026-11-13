@@ -1,16 +1,16 @@
 import passport from "passport";
 
-export const authMiddleware = (req, res, next) => {
-  passport.authenticate("jwt", { session: false }, (err, user, info) => {
-    if (err) {
-      return res.status(500).json({ mensaje: "Error en la autenticación." });
+export function requiereAutenticacion(req, res, next) {
+  passport.authenticate("jwt", { session: false }, (error, usuario) => {
+    if (error) {
+      return res.status(500).json({ mensaje: "Error al verificar el token." });
     }
 
-    if (!user) {
-      return res.status(401).json({ mensaje: "Token inválido o ausente." });
+    if (!usuario) {
+      return res.status(401).json({ mensaje: "Token ausente o inválido." });
     }
 
-    req.user = user;
-    next();
+    req.user = usuario;
+    return next();
   })(req, res, next);
-};
+}
