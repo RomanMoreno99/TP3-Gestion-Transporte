@@ -4,10 +4,10 @@ import pool from "../config/db.js";
 export const listarVehiculos = async (req, res) => {
   try {
     const [vehiculos] = await pool.query("SELECT * FROM vehiculos ORDER BY id DESC");
-    res.status(200).json(vehiculos);
+    return res.status(200).json(vehiculos);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al listar vehículos." });
+    return res.status(500).json({ mensaje: "Error al listar vehículos." });
   }
 };
 
@@ -59,6 +59,9 @@ export const crearVehiculo = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ mensaje: "La patente ya existe." });
+    }
     return res.status(500).json({ mensaje: "Error al crear vehículo." });
   }
 };
@@ -70,7 +73,25 @@ export const actualizarVehiculo = async (req, res) => {
   }
 
   const { id } = req.params;
-  const campos = req.body;
+  const campos = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+    ? req.body
+    : null;
+  const camposPermitidos = ["marca", "modelo", "patente", "anio", "capacidad_carga"];
+
+  if (!campos) {
+    return res.status(400).json({ mensaje: "El cuerpo debe ser un objeto JSON." });
+  }
+
+  const columnas = Object.keys(campos);
+  const camposInvalidos = columnas.filter((campo) => !camposPermitidos.includes(campo));
+
+  if (camposInvalidos.length > 0) {
+    return res.status(400).json({ mensaje: "Se enviaron campos no permitidos.", campos: camposInvalidos });
+  }
+
+  if (columnas.length === 0) {
+    return res.status(400).json({ mensaje: "No se enviaron campos para actualizar." });
+  }
 
   try {
     const [vehiculo] = await pool.query("SELECT id FROM vehiculos WHERE id = ?", [id]);
@@ -79,21 +100,16 @@ export const actualizarVehiculo = async (req, res) => {
       return res.status(404).json({ mensaje: "Vehículo no encontrado." });
     }
 
-    const columnas = Object.keys(campos);
-    const valores = Object.values(campos);
-
-    if (columnas.length === 0) {
-      return res.status(400).json({ mensaje: "No se enviaron campos para actualizar." });
-    }
-
+    const valores = columnas.map((campo) => campos[campo]);
     const sql = `UPDATE vehiculos SET ${columnas.map((campo) => `${campo} = ?`).join(", ")} WHERE id = ?`;
-    valores.push(id);
-
-    await pool.query(sql, valores);
+    await pool.query(sql, [...valores, id]);
 
     return res.status(200).json({ mensaje: "Vehículo actualizado correctamente." });
   } catch (error) {
     console.error(error);
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ mensaje: "La patente ya existe." });
+    }
     return res.status(500).json({ mensaje: "Error al actualizar vehículo." });
   }
 };
@@ -116,6 +132,9 @@ export const eliminarVehiculo = async (req, res) => {
     return res.status(200).json({ mensaje: "Vehículo eliminado correctamente." });
   } catch (error) {
     console.error(error);
+    if (error.code === "ER_ROW_IS_REFERENCED_2") {
+      return res.status(409).json({ mensaje: "No se puede eliminar el vehículo porque tiene viajes asociados." });
+    }
     return res.status(500).json({ mensaje: "Error al eliminar vehículo." });
   }
 };

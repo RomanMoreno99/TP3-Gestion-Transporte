@@ -1,6 +1,15 @@
 import { validationResult } from "express-validator";
 import pool from "../config/db.js";
 
+function responderSiHayErroresDeValidacion(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ errores: errors.array() });
+    return true;
+  }
+  return false;
+}
+
 export const listarViajes = async (req, res) => {
   try {
     const [viajes] = await pool.query(`
@@ -11,18 +20,15 @@ export const listarViajes = async (req, res) => {
       ORDER BY v.id DESC
     `);
 
-    res.status(200).json(viajes);
+    return res.status(200).json(viajes);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al listar viajes." });
+    return res.status(500).json({ mensaje: "Error al listar viajes." });
   }
 };
 
 export const crearViaje = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errores: errors.array() });
-  }
+  if (responderSiHayErroresDeValidacion(req, res)) return;
 
   const {
     vehiculo_id,
@@ -62,10 +68,7 @@ export const crearViaje = async (req, res) => {
       ]
     );
 
-    return res.status(201).json({
-      mensaje: "Viaje registrado correctamente.",
-      id: result.insertId,
-    });
+    return res.status(201).json({ mensaje: "Viaje registrado correctamente.", id: result.insertId });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ mensaje: "Error al crear viaje." });
@@ -73,14 +76,15 @@ export const crearViaje = async (req, res) => {
 };
 
 export const obtenerViajesPorVehiculo = async (req, res) => {
+  if (responderSiHayErroresDeValidacion(req, res)) return;
+
   const { id } = req.params;
 
   try {
     const [viajes] = await pool.query(
-      `SELECT * FROM viajes WHERE vehiculo_id = ? ORDER BY fecha_salida DESC`,
+      "SELECT * FROM viajes WHERE vehiculo_id = ? ORDER BY fecha_salida DESC",
       [id]
     );
-
     return res.status(200).json(viajes);
   } catch (error) {
     console.error(error);
@@ -89,14 +93,15 @@ export const obtenerViajesPorVehiculo = async (req, res) => {
 };
 
 export const obtenerViajesPorConductor = async (req, res) => {
+  if (responderSiHayErroresDeValidacion(req, res)) return;
+
   const { id } = req.params;
 
   try {
     const [viajes] = await pool.query(
-      `SELECT * FROM viajes WHERE conductor_id = ? ORDER BY fecha_salida DESC`,
+      "SELECT * FROM viajes WHERE conductor_id = ? ORDER BY fecha_salida DESC",
       [id]
     );
-
     return res.status(200).json(viajes);
   } catch (error) {
     console.error(error);
@@ -105,16 +110,15 @@ export const obtenerViajesPorConductor = async (req, res) => {
 };
 
 export const totalKilometrosPorVehiculo = async (req, res) => {
+  if (responderSiHayErroresDeValidacion(req, res)) return;
+
   const { id } = req.params;
 
   try {
     const [rows] = await pool.query(
-      `SELECT COALESCE(SUM(kilometros), 0) AS total_km
-       FROM viajes
-       WHERE vehiculo_id = ?`,
+      `SELECT COALESCE(SUM(kilometros), 0) AS total_km FROM viajes WHERE vehiculo_id = ?`,
       [id]
     );
-
     return res.status(200).json({ vehiculo_id: Number(id), total_km: Number(rows[0].total_km) });
   } catch (error) {
     console.error(error);
@@ -123,16 +127,15 @@ export const totalKilometrosPorVehiculo = async (req, res) => {
 };
 
 export const totalKilometrosPorConductor = async (req, res) => {
+  if (responderSiHayErroresDeValidacion(req, res)) return;
+
   const { id } = req.params;
 
   try {
     const [rows] = await pool.query(
-      `SELECT COALESCE(SUM(kilometros), 0) AS total_km
-       FROM viajes
-       WHERE conductor_id = ?`,
+      `SELECT COALESCE(SUM(kilometros), 0) AS total_km FROM viajes WHERE conductor_id = ?`,
       [id]
     );
-
     return res.status(200).json({ conductor_id: Number(id), total_km: Number(rows[0].total_km) });
   } catch (error) {
     console.error(error);

@@ -21,4 +21,8 @@ app.use("/api/vehiculos", vehiculosRoutes);
 app.use("/api/conductores", conductoresRoutes);
 app.use("/api/viajes", viajesRoutes);
 
+app.use((req, res) => {
+  res.status(404).json({ mensaje: "Ruta no encontrada." });
+});
+
 export default app;
