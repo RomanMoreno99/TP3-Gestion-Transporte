@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "../services/api.js";
 
-const inicial = {
-  marca: "",
-  modelo: "",
-  patente: "",
-  anio: "",
-  capacidad_carga: "",
-};
+function fechaParaInput(fecha) {
+  return fecha ? String(fecha).slice(0, 10) : "";
+}
 
-export default function Vehiculos({ token, avisar }) {
+function mostrarFecha(fecha) {
+  const valor = fechaParaInput(fecha);
+  return valor ? valor.split("-").reverse().join("/") : "—";
+}
+
+export default function Conductores({ token, avisar }) {
   const [lista, setLista] = useState([]);
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
   const [editando, setEditando] = useState(null);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
@@ -21,8 +23,8 @@ export default function Vehiculos({ token, avisar }) {
     setError("");
 
     try {
-      const datos = await apiRequest("/vehiculos", { token });
-      setLista(datos);
+      const datos = await apiRequest("/conductores", { token });
+      setLista(Array.isArray(datos) ? datos : []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -34,57 +36,66 @@ export default function Vehiculos({ token, avisar }) {
     cargar();
   }, [token]);
 
-  function nuevoVehiculo() {
+  function nuevoConductor() {
     setEditando(null);
     setMostrarFormulario(true);
   }
 
-  function editarVehiculo(vehiculo) {
-    setEditando(vehiculo);
+  function editarConductor(conductor) {
+    setEditando(conductor);
     setMostrarFormulario(true);
   }
 
   async function guardar(event) {
     event.preventDefault();
     setError("");
+    setGuardando(true);
 
     const form = new FormData(event.currentTarget);
     const datos = {
-      marca: String(form.get("marca")).trim(),
-      modelo: String(form.get("modelo")).trim(),
-      patente: String(form.get("patente")).trim().toUpperCase(),
-      anio: Number(form.get("anio")),
-      capacidad_carga: Number(form.get("capacidad_carga")),
+      nombre: String(form.get("nombre")).trim(),
+      apellido: String(form.get("apellido")).trim(),
+      documento: String(form.get("documento")).trim(),
+      numero_licencia: String(form.get("numero_licencia")).trim(),
+      fecha_alta_licencia: form.get("fecha_alta_licencia"),
+      fecha_vencimiento_licencia: form.get("fecha_vencimiento_licencia"),
     };
 
     try {
-      await apiRequest(editando ? `/vehiculos/${editando.id}` : "/vehiculos", {
-        method: editando ? "PUT" : "POST",
-        body: datos,
-        token,
-      });
+      await apiRequest(
+        editando ? `/conductores/${editando.id}` : "/conductores",
+        {
+          method: editando ? "PUT" : "POST",
+          body: datos,
+          token,
+        }
+      );
 
       setMostrarFormulario(false);
       setEditando(null);
-      avisar(editando ? "Vehículo actualizado." : "Vehículo creado.");
+      avisar(editando ? "Conductor actualizado." : "Conductor creado.");
       await cargar();
     } catch (e) {
       setError(e.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
-  async function eliminar(vehiculo) {
-    if (!window.confirm(`¿Eliminar el vehículo ${vehiculo.patente}?`)) return;
+  async function eliminarConductor(conductor) {
+    if (!window.confirm(`¿Eliminar a ${conductor.nombre} ${conductor.apellido}?`)) {
+      return;
+    }
 
     setError("");
 
     try {
-      await apiRequest(`/vehiculos/${vehiculo.id}`, {
+      await apiRequest(`/conductores/${conductor.id}`, {
         method: "DELETE",
         token,
       });
 
-      avisar("Vehículo eliminado.");
+      avisar("Conductor eliminado.");
       await cargar();
     } catch (e) {
       setError(e.message);
@@ -95,12 +106,13 @@ export default function Vehiculos({ token, avisar }) {
     <section>
       <div className="section-title">
         <div>
-          <p className="eyebrow">FLOTA</p>
-          <h1>Vehículos</h1>
-          <p className="muted">Registrá y administrá los vehículos de la empresa.</p>
+          <p className="eyebrow">PERSONAL</p>
+          <h1>Conductores</h1>
+          <p className="muted">Registrá y administrá los conductores de la empresa.</p>
         </div>
-        <button className="button primary-button" onClick={nuevoVehiculo}>
-          + Agregar vehículo
+
+        <button className="button primary-button" onClick={nuevoConductor}>
+          + Agregar conductor
         </button>
       </div>
 
@@ -108,46 +120,127 @@ export default function Vehiculos({ token, avisar }) {
 
       {mostrarFormulario && (
         <form className="panel form-panel" onSubmit={guardar}>
-          <h2>{editando ? "Editar vehículo" : "Nuevo vehículo"}</h2>
+          <h2>{editando ? "Editar conductor" : "Nuevo conductor"}</h2>
 
           <div className="form-grid">
-            <label>Marca<input name="marca" required maxLength="80" defaultValue={editando?.marca || ""} /></label>
-            <label>Modelo<input name="modelo" required maxLength="80" defaultValue={editando?.modelo || ""} /></label>
-            <label>Patente<input name="patente" required maxLength="20" defaultValue={editando?.patente || ""} /></label>
-            <label>Año<input name="anio" type="number" required min="1900" max={new Date().getFullYear() + 1} defaultValue={editando?.anio || ""} /></label>
-            <label>Capacidad de carga (kg)<input name="capacidad_carga" type="number" required min="0" step="0.01" defaultValue={editando?.capacidad_carga || ""} /></label>
+            <label>
+              Nombre
+              <input
+                name="nombre"
+                required
+                defaultValue={editando?.nombre || ""}
+              />
+            </label>
+
+            <label>
+              Apellido
+              <input
+                name="apellido"
+                required
+                defaultValue={editando?.apellido || ""}
+              />
+            </label>
+
+            <label>
+              Documento
+              <input
+                name="documento"
+                required
+                defaultValue={editando?.documento || ""}
+              />
+            </label>
+
+            <label>
+              Número de licencia
+              <input
+                name="numero_licencia"
+                required
+                defaultValue={editando?.numero_licencia || ""}
+              />
+            </label>
+
+            <label>
+              Fecha de alta de licencia
+              <input
+                name="fecha_alta_licencia"
+                type="date"
+                required
+                defaultValue={fechaParaInput(editando?.fecha_alta_licencia)}
+              />
+            </label>
+
+            <label>
+              Vencimiento de licencia
+              <input
+                name="fecha_vencimiento_licencia"
+                type="date"
+                required
+                defaultValue={fechaParaInput(editando?.fecha_vencimiento_licencia)}
+              />
+            </label>
           </div>
 
           <div className="button-row">
-            <button type="button" className="button secondary-button" onClick={() => setMostrarFormulario(false)}>Cancelar</button>
-            <button className="button primary-button">{editando ? "Guardar cambios" : "Crear vehículo"}</button>
+            <button
+              type="button"
+              className="button secondary-button"
+              onClick={() => {
+                setMostrarFormulario(false);
+                setEditando(null);
+              }}
+            >
+              Cancelar
+            </button>
+
+            <button className="button primary-button" disabled={guardando}>
+              {guardando
+                ? "Guardando…"
+                : editando
+                  ? "Guardar cambios"
+                  : "Crear conductor"}
+            </button>
           </div>
         </form>
       )}
 
       <div className="panel table-panel">
-        <h2>Vehículos registrados <span className="count">{lista.length}</span></h2>
+        <h2>
+          Conductores registrados <span className="count">{lista.length}</span>
+        </h2>
 
         {cargando ? (
-          <p className="muted">Cargando vehículos…</p>
+          <p className="muted">Cargando conductores…</p>
         ) : lista.length === 0 ? (
-          <p className="muted">Todavía no hay vehículos registrados.</p>
+          <p className="muted">Todavía no hay conductores registrados.</p>
         ) : (
           <div className="table-scroll">
             <table>
               <thead>
-                <tr><th>Marca y modelo</th><th>Patente</th><th>Año</th><th>Capacidad</th><th>Acciones</th></tr>
+                <tr>
+                  <th>Nombre y apellido</th>
+                  <th>Documento</th>
+                  <th>Número de licencia</th>
+                  <th>Vencimiento</th>
+                  <th>Acciones</th>
+                </tr>
               </thead>
               <tbody>
-                {lista.map((v) => (
-                  <tr key={v.id}>
-                    <td>{v.marca} {v.modelo}</td>
-                    <td>{v.patente}</td>
-                    <td>{v.anio}</td>
-                    <td>{Number(v.capacidad_carga).toLocaleString("es-AR")} kg</td>
+                {lista.map((conductor) => (
+                  <tr key={conductor.id}>
+                    <td>{conductor.nombre} {conductor.apellido}</td>
+                    <td>{conductor.documento}</td>
+                    <td>{conductor.numero_licencia}</td>
+                    <td>{mostrarFecha(conductor.fecha_vencimiento_licencia)}</td>
                     <td className="actions">
-                      <button onClick={() => editarVehiculo(v)}>Editar</button>
-                      <button className="danger" onClick={() => eliminar(v)}>Eliminar</button>
+                      <button onClick={() => editarConductor(conductor)}>
+                        Editar
+                      </button>
+                      <button
+                        className="danger"
+                        onClick={() => eliminarConductor(conductor)}
+                      >
+                        Eliminar
+                      </button>
                     </td>
                   </tr>
                 ))}

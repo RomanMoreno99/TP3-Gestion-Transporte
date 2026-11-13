@@ -39,32 +39,35 @@ export default function Viajes({ token, avisar }) {
   }, [token]);
 
   async function registrar(event) {
-    event.preventDefault();
-    setError("");
+  event.preventDefault();
+  setError("");
 
-    const form = new FormData(event.currentTarget);
-    const fechaLlegada = form.get("fecha_llegada");
+  const formulario = event.currentTarget;
+  const form = new FormData(formulario);
+  const fechaLlegada = form.get("fecha_llegada");
 
-    const datos = {
-      vehiculo_id: Number(form.get("vehiculo_id")),
-      conductor_id: Number(form.get("conductor_id")),
-      fecha_salida: form.get("fecha_salida"),
-      fecha_llegada: fechaLlegada || null,
-      origen: String(form.get("origen")).trim(),
-      destino: String(form.get("destino")).trim(),
-      kilometros: Number(form.get("kilometros")),
-      observaciones: String(form.get("observaciones")).trim(),
-    };
+  const datos = {
+    vehiculo_id: Number(form.get("vehiculo_id")),
+    conductor_id: Number(form.get("conductor_id")),
+    fecha_salida: form.get("fecha_salida"),
+    fecha_llegada: fechaLlegada || null,
+    origen: String(form.get("origen")).trim(),
+    destino: String(form.get("destino")).trim(),
+    kilometros: Number(form.get("kilometros")),
+    observaciones: String(form.get("observaciones")).trim(),
+  };
 
-    try {
-      await apiRequest("/viajes", { method: "POST", body: datos, token });
-      event.currentTarget.reset();
-      avisar("Viaje registrado.");
-      await cargarDatos();
-    } catch (e) {
-      setError(e.message);
-    }
+  try {
+    await apiRequest("/viajes", { method: "POST", body: datos, token });
+
+    formulario.reset();
+    formulario.elements.namedItem("fecha_salida").value = "";
+    avisar("Viaje guardado.");
+    await cargarDatos();
+  } catch (e) {
+    setError(e.message);
   }
+}
 
   async function consultarHistorial(event) {
     event.preventDefault();
